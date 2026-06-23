@@ -12,6 +12,7 @@ import CartPanel from '../components/customer/CartPanel';
 import VoiceOrderButton from '../components/customer/VoiceOrderButton';
 import OrderTracker from '../components/customer/OrderTracker';
 import RecommendationSection from '../components/customer/RecommendationSection';
+import UpsellModal from '../components/customer/UpsellModal';
 
 const CATEGORIES = [
   { id: 'All', label: 'All', icon: '🍽️' },
@@ -46,10 +47,11 @@ export default function CustomerMenu() {
   const [tableInfo, setTableInfo] = useState(null);
   const [waiterActive, setWaiterActive] = useState(false);
   const [cartPulse, setCartPulse] = useState(false);
+  const [showUpsellModal, setShowUpsellModal] = useState(false);
 
   const { cart, addToCart, itemCount, total, setTableNumber, setTableId } = useCart();
   const { theme, toggleTheme } = useTheme();
-  const { recommendations, upsellItems, parseVoiceOrder } = useAIRecommendations(menuItems, cart);
+  const { weatherPicks, userFavorites, combos, weatherCondition, activeOffers, parseVoiceOrder } = useAIRecommendations(menuItems, cart);
   const { t } = useTranslation(lang);
 
   useEffect(() => {
@@ -153,6 +155,10 @@ export default function CustomerMenu() {
       setWaiterActive(false);
       toast.error('Could not call waiter. Please try again.');
     }
+  };
+
+  const handleItemAdded = () => {
+    setShowUpsellModal(true);
   };
 
   const filteredItems = menuItems.filter(item => {
@@ -316,11 +322,15 @@ export default function CustomerMenu() {
       {/* Main content grid */}
       <main className="relative z-10 max-w-lg mx-auto px-4 pt-5">
         {/* AI Recommendations */}
-        {activeCategory === 'All' && !search && !vegOnly && recommendations.length > 0 && (
+        {activeCategory === 'All' && !search && !vegOnly && (weatherPicks.length > 0 || userFavorites.length > 0 || combos.length > 0) && (
           <RecommendationSection
-            items={recommendations}
-            upsellItems={upsellItems}
+            weatherPicks={weatherPicks}
+            userFavorites={userFavorites}
+            combos={combos}
+            weatherCondition={weatherCondition}
+            activeOffers={activeOffers}
             onAdd={addToCart}
+            onItemAdded={handleItemAdded}
             t={t}
           />
         )}
@@ -343,7 +353,7 @@ export default function CustomerMenu() {
           ) : (
             filteredItems.map((item, index) => (
               <div key={item._id} className="animate-slide-up" style={{ animationDelay: `${index * 40}ms` }}>
-                <MenuItemCard item={item} lang={lang} t={t} />
+                <MenuItemCard item={item} lang={lang} t={t} onItemAdded={handleItemAdded} />
               </div>
             ))
           )}
@@ -400,6 +410,16 @@ export default function CustomerMenu() {
           orders={activeOrders}
           onClose={() => setShowTracker(false)}
           t={t}
+        />
+      )}
+
+      {/* KFC-style Upsell Modal */}
+      {showUpsellModal && combos.length > 0 && (
+        <UpsellModal 
+          items={combos.slice(0, 3)} 
+          onClose={() => setShowUpsellModal(false)} 
+          t={t} 
+          lang={lang} 
         />
       )}
     </div>

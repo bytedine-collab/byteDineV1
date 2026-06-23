@@ -75,4 +75,15 @@ export const analyticsAPI = {
   getDashboard: () => api.get('/analytics/dashboard'),
 };
 
+// Config
+export const configAPI = {
+  get: () => api.get('/config'),
+  update: (data) => api.put('/config', data),
+};
+
+// Recommendations
+export const recommendationAPI = {
+  get: (data) => api.post('/recommendations', data),
+};
+
 export default api;

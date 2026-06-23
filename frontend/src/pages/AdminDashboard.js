@@ -7,6 +7,7 @@ import TablesOverview from '../components/admin/TablesOverview';
 import MenuManager from '../components/admin/MenuManager';
 import AnalyticsDashboard from '../components/admin/AnalyticsDashboard';
 import QRManager from '../components/admin/QRManager';
+import SettingsPanel from '../components/admin/SettingsPanel';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'menu', label: 'Menu', icon: '📋' },
   { id: 'analytics', label: 'Analytics', icon: '📊' },
   { id: 'qr', label: 'QR Codes', icon: '📱' },
+  { id: 'settings', label: 'Settings', icon: '⚙️' },
 ];
 
 export default function AdminDashboard() {
@@ -272,6 +274,9 @@ export default function AdminDashboard() {
           )}
           {activeTab === 'qr' && (
             <QRManager tables={tables} />
+          )}
+          {activeTab === 'settings' && (
+            <SettingsPanel />
           )}
         </main>
       </div>

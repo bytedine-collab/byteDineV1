@@ -26,16 +26,16 @@ function ItemCard({ item, tone = 'orange' }) {
   return (
     <div className={`w-36 flex-shrink-0 overflow-hidden rounded-2xl border ${toneClasses} backdrop-blur-xl hover:-translate-y-1 transition-all duration-300 relative flex flex-col pb-3`}>
       {/* Top: Photo Area with Veg/Non-Veg icon */}
-      <div className="relative h-24 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-smoke dark:to-coal overflow-hidden">
+      <div className="relative h-24 w-full rounded-t-2xl">
         {item.image ? (
           <img
             src={item.image}
             alt={item.name}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover rounded-t-2xl"
             onError={e => { e.target.style.display = 'none'; }}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-3xl">🍽️</div>
+          <div className="flex h-full w-full items-center justify-center text-3xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-smoke dark:to-coal rounded-t-2xl">🍽️</div>
         )}
         
         {/* Veg/Non-veg Dot */}
@@ -47,23 +47,23 @@ function ItemCard({ item, tone = 'orange' }) {
             <button
               onClick={handleAdd}
               disabled={!item.isAvailable}
-              className="w-full h-full bg-white text-orange-500 border border-orange-500/20 rounded-xl font-extrabold text-[11px] shadow-lg hover:bg-orange-50 active:scale-95 transition-all flex items-center justify-center gap-0.5 uppercase tracking-wide"
+              className="w-full h-full bg-white dark:bg-ash text-orange-600 dark:text-orange-400 border border-gray-200 dark:border-gray-600 rounded-xl font-black text-[11px] shadow-[0_4px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_10px_rgba(0,0,0,0.4)] hover:bg-gray-50 dark:hover:bg-coal active:scale-95 transition-all flex items-center justify-center uppercase tracking-wide"
             >
-              {item.isAvailable ? 'Add +' : 'Out'}
+              {item.isAvailable ? 'ADD' : 'OUT'}
             </button>
           ) : (
-            <div className="w-full h-full bg-white text-orange-500 border border-orange-500/20 rounded-xl font-extrabold text-[11px] shadow-lg flex items-center justify-between px-1.5">
+            <div className="w-full h-full bg-white dark:bg-ash text-orange-600 dark:text-orange-400 border border-gray-200 dark:border-gray-600 rounded-xl font-black text-[11px] shadow-[0_4px_10px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_10px_rgba(0,0,0,0.4)] flex items-center justify-between px-1">
               <button
                 onClick={handleDecrement}
-                className="w-5 h-5 flex items-center justify-center rounded hover:bg-orange-50 active:scale-75 text-orange-600 font-black"
+                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-orange-50 dark:hover:bg-coal active:scale-75 text-orange-600 dark:text-orange-400 text-base transition-transform"
                 aria-label="Decrease quantity"
               >
                 −
               </button>
-              <span className="text-coal font-black select-none text-[10px]">{qty}</span>
+              <span className="text-coal dark:text-white font-black select-none text-[11px]">{qty}</span>
               <button
                 onClick={handleIncrement}
-                className="w-5 h-5 flex items-center justify-center rounded hover:bg-orange-50 active:scale-75 text-orange-600 font-black"
+                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-orange-50 dark:hover:bg-coal active:scale-75 text-orange-600 dark:text-orange-400 text-base transition-transform"
                 aria-label="Increase quantity"
               >
                 +
@@ -86,34 +86,61 @@ function ItemCard({ item, tone = 'orange' }) {
   );
 }
 
-export default function RecommendationSection({ items, upsellItems, recommendations }) {
-  const popularItems = items || recommendations || [];
-  const upsell = upsellItems || [];
+export default function RecommendationSection({ weatherPicks, userFavorites, combos, weatherCondition, activeOffers }) {
+  const hasWeather = weatherPicks && weatherPicks.length > 0;
+  const hasFavs = userFavorites && userFavorites.length > 0;
+  const hasCombos = combos && combos.length > 0;
 
-  if (popularItems.length === 0 && upsell.length === 0) return null;
+  if (!hasWeather && !hasFavs && !hasCombos && !activeOffers) return null;
 
   return (
     <section className="mb-6 space-y-6">
-      {popularItems.length > 0 && (
+      {/* Active Offers Banner */}
+      {activeOffers && (
+        <div className="animate-fade-in bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-3 shadow-sm text-white font-bold text-xs text-center border border-orange-300">
+          🎉 {activeOffers}
+        </div>
+      )}
+
+      {/* Your Favorites */}
+      {hasFavs && (
         <div className="animate-fade-in">
-          <div className="mb-3 border-l-4 border-flame pl-3">
-            <h3 className="font-display text-[15px] font-extrabold text-gray-900 dark:text-white tracking-wide">✨ Picks for You</h3>
-            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Chef-friendly matches based on your table</p>
+          <div className="mb-3 border-l-4 border-pink-500 pl-3">
+            <h3 className="font-display text-[15px] font-extrabold text-gray-900 dark:text-white tracking-wide">❤️ Your Usuals</h3>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Based on your past orders</p>
           </div>
           <div className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-hide">
-            {popularItems.map(item => <ItemCard key={item._id} item={item} />)}
+            {userFavorites.map(item => <ItemCard key={item._id} item={item} tone="orange" />)}
           </div>
         </div>
       )}
 
-      {upsell.length > 0 && (
+      {/* Weather Picks */}
+      {hasWeather && (
         <div className="animate-fade-in">
           <div className="mb-3 border-l-4 border-blue-400 pl-3">
-            <h3 className="font-display text-[15px] font-extrabold text-gray-900 dark:text-white tracking-wide">Complete Your Meal</h3>
-            <p className="text-[11px] text-blue-500/70 dark:text-blue-300/60 mt-0.5 font-sans">Pairs beautifully with your cart</p>
+            <h3 className="font-display text-[15px] font-extrabold text-gray-900 dark:text-white tracking-wide">
+              {weatherCondition === 'Rainy' ? '🌧️ Perfect for the Rain' :
+               weatherCondition === 'Hot' ? '☀️ Beat the Heat' :
+               weatherCondition === 'Cold' ? '❄️ Warm Up' : '🌤️ Perfect for Today'}
+            </h3>
+            <p className="text-[11px] text-blue-500/70 dark:text-blue-300/60 mt-0.5 font-sans">Curated for the current weather</p>
           </div>
           <div className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-hide">
-            {upsell.map(item => <ItemCard key={item._id} item={item} tone="blue" />)}
+            {weatherPicks.map(item => <ItemCard key={item._id} item={item} tone="blue" />)}
+          </div>
+        </div>
+      )}
+
+      {/* Best Combos / High Profit */}
+      {hasCombos && (
+        <div className="animate-fade-in">
+          <div className="mb-3 border-l-4 border-flame pl-3">
+            <h3 className="font-display text-[15px] font-extrabold text-gray-900 dark:text-white tracking-wide">✨ Complete Your Meal</h3>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">Chef recommended add-ons</p>
+          </div>
+          <div className="flex gap-3.5 overflow-x-auto pb-3 pt-1 scrollbar-hide">
+            {combos.map(item => <ItemCard key={item._id} item={item} tone="orange" />)}
           </div>
         </div>
       )}

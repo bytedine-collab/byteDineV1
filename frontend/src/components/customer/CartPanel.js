@@ -12,7 +12,11 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
   const [specialRequests, setSpecialRequests] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const validatePhone = () => {
+  const validateForm = () => {
+    if (!customerName.trim() || customerName.trim().length < 2) {
+      toast.error('Please enter your name');
+      return false;
+    }
     if (!PHONE_REGEX.test(customerPhone.trim())) {
       toast.error('Enter a valid 10-digit mobile number');
       return false;
@@ -22,7 +26,7 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
 
   const placeOrder = async () => {
     if (cart.length === 0) return;
-    if (!validatePhone()) return;
+    if (!validateForm()) return;
 
     setLoading(true);
     try {
@@ -37,6 +41,10 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
       };
       const res = await orderAPI.create(orderData);
       const order = res.data.data;
+      
+      // Save phone for AI recommendations
+      localStorage.setItem('customerPhone', customerPhone.trim());
+      
       clearCart();
       toast.success('Order placed! Kitchen is preparing your food.', { duration: 4000 });
       onOrderPlaced(order);

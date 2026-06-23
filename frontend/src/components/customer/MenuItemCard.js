@@ -8,7 +8,7 @@ const spiceStyles = {
   'Extra Spicy': 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20',
 };
 
-export default function MenuItemCard({ item, lang, t }) {
+export default function MenuItemCard({ item, lang, t, onItemAdded }) {
   const { cart, addToCart, updateQuantity } = useCart();
 
   // Bind directly to global cart state
@@ -20,6 +20,7 @@ export default function MenuItemCard({ item, lang, t }) {
 
   const handleAdd = () => {
     addToCart(item, 1);
+    if (onItemAdded) onItemAdded(item);
   };
 
   const handleIncrement = () => {
@@ -31,7 +32,7 @@ export default function MenuItemCard({ item, lang, t }) {
   };
 
   return (
-    <article className="flex gap-4 p-4 rounded-2xl bg-white dark:bg-ash border border-gray-100 dark:border-white/5 shadow-sm dark:shadow-glow-sm hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:shadow-md dark:hover:shadow-glow-md transition-all duration-300 relative overflow-hidden group">
+    <article className="flex gap-4 p-4 rounded-2xl bg-white dark:bg-ash border border-gray-100 dark:border-white/5 shadow-sm dark:shadow-glow-sm hover:border-orange-500/30 dark:hover:border-orange-500/30 hover:shadow-md dark:hover:shadow-glow-md transition-all duration-300 relative group">
       {/* Left Column: Details (60%) */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center gap-2 mb-1.5">
@@ -79,7 +80,8 @@ export default function MenuItemCard({ item, lang, t }) {
       </div>
 
       {/* Right Column: Square Image & Floating Button (40%) */}
-      <div className="relative w-[110px] h-[110px] flex-shrink-0 flex items-center justify-center">
+      <div className="relative w-[110px] flex flex-col items-center flex-shrink-0">
+        <div className="w-full h-[110px] relative rounded-2xl shadow-sm overflow-hidden border border-gray-200/50 dark:border-white/10 group-hover:scale-[1.03] transition-transform duration-300">
         {item.image ? (
           <img
             src={item.image}
@@ -88,40 +90,37 @@ export default function MenuItemCard({ item, lang, t }) {
             onError={e => { e.target.style.display = 'none'; }}
           />
         ) : (
-          <div className="w-full h-full rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-smoke dark:to-coal border border-gray-200/50 dark:border-white/10 flex items-center justify-center text-4xl">
+          <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 dark:from-smoke dark:to-coal flex items-center justify-center text-4xl">
             🍽️
           </div>
         )}
+        </div>
 
         {/* Floating ADD Button / Stepper */}
-        <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-[90px] h-9">
+        <div className="absolute -bottom-3 w-[90%] h-9 z-10">
           {qty === 0 ? (
             <button
               onClick={handleAdd}
               disabled={!item.isAvailable}
-              className="w-full h-full bg-white text-orange-500 border border-orange-500/25 rounded-xl font-extrabold text-xs shadow-lg hover:bg-orange-50 hover:border-orange-500/50 active:scale-95 transition-all flex items-center justify-center gap-1 uppercase tracking-wider"
+              className="w-full h-full bg-white dark:bg-ash text-orange-600 dark:text-orange-400 border border-gray-200 dark:border-gray-600 rounded-xl font-black text-sm shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] hover:bg-gray-50 dark:hover:bg-coal active:scale-95 transition-all flex items-center justify-center uppercase tracking-wide"
             >
-              {item.isAvailable ? (
-                <>
-                  Add <span className="text-orange-600 font-bold text-sm">+</span>
-                </>
-              ) : (
-                <span className="text-gray-400 text-[10px] font-semibold">Out</span>
+              {item.isAvailable ? 'ADD' : (
+                <span className="text-gray-400 text-[10px] font-semibold">OUT</span>
               )}
             </button>
           ) : (
-            <div className="w-full h-full bg-white text-orange-500 border border-orange-500/25 rounded-xl font-extrabold text-xs shadow-lg flex items-center justify-between px-1.5">
+            <div className="w-full h-full bg-white dark:bg-ash text-orange-600 dark:text-orange-400 border border-gray-200 dark:border-gray-600 rounded-xl font-black text-sm shadow-[0_4px_12px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_rgba(0,0,0,0.4)] flex items-center justify-between px-1">
               <button
                 onClick={handleDecrement}
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-orange-50 active:scale-75 text-orange-600 text-base font-black transition-transform"
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-orange-50 dark:hover:bg-coal active:scale-75 text-orange-600 dark:text-orange-400 text-lg transition-transform"
                 aria-label="Decrease quantity"
               >
                 −
               </button>
-              <span className="text-coal font-black text-xs select-none">{qty}</span>
+              <span className="text-coal dark:text-white font-black text-sm select-none">{qty}</span>
               <button
                 onClick={handleIncrement}
-                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-orange-50 active:scale-75 text-orange-600 text-base font-black transition-transform"
+                className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-orange-50 dark:hover:bg-coal active:scale-75 text-orange-600 dark:text-orange-400 text-lg transition-transform"
                 aria-label="Increase quantity"
               >
                 +

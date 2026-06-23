@@ -1,90 +1,37 @@
 import { useState, useEffect } from 'react';
+import { recommendationAPI } from '../services/api';
 
-// Logic-based AI recommendations (no external ML needed)
+// AI recommendations using the backend engine
 export const useAIRecommendations = (menuItems, cart) => {
-  const [recommendations, setRecommendations] = useState([]);
-  const [upsellItems, setUpsellItems] = useState([]);
-  const [timeBasedSuggestions, setTimeBasedSuggestions] = useState([]);
+  const [weatherPicks, setWeatherPicks] = useState([]);
+  const [userFavorites, setUserFavorites] = useState([]);
+  const [combos, setCombos] = useState([]);
+  const [weatherCondition, setWeatherCondition] = useState('');
+  const [activeOffers, setActiveOffers] = useState('');
 
   useEffect(() => {
-    if (!menuItems || menuItems.length === 0) return;
-    generateRecommendations();
-  }, [menuItems, cart]);
+    fetchRecommendations();
+  }, [cart]);
 
-  const generateRecommendations = () => {
-    const hour = new Date().getHours();
-
-    // Time-based suggestions
-    let timeItems = [];
-    if (hour >= 6 && hour < 11) {
-      // Breakfast time
-      timeItems = menuItems.filter(i =>
-        i.category === 'Beverages' || i.tags?.includes('light')
-      );
-    } else if (hour >= 11 && hour < 15) {
-      // Lunch
-      timeItems = menuItems.filter(i =>
-        i.category === 'Main Course' || i.category === 'Rice & Biryani'
-      );
-    } else if (hour >= 15 && hour < 18) {
-      // Snack time
-      timeItems = menuItems.filter(i =>
-        i.category === 'Starters' || i.category === 'Beverages'
-      );
-    } else {
-      // Dinner
-      timeItems = menuItems.filter(i =>
-        i.isPopular || i.isFeatured
-      );
-    }
-    setTimeBasedSuggestions(timeItems.slice(0, 4));
-
-    // Popular items not in cart
-    const cartIds = cart.map(c => c.menuItem);
-    const popular = menuItems
-      .filter(i => i.isPopular && !cartIds.includes(i._id) && i.isAvailable)
-      .sort((a, b) => b.orderCount - a.orderCount)
-      .slice(0, 6);
-    setRecommendations(popular);
-
-    // Upsell: based on cart categories
-    if (cart.length > 0) {
-      const cartCategories = [...new Set(cart.map(i => i.category))];
-      let upsell = [];
-
-      // If main course in cart, suggest breads and beverages
-      if (cartCategories.includes('Main Course')) {
-        const breads = menuItems.filter(i =>
-          i.category === 'Breads' && !cartIds.includes(i._id)
-        ).slice(0, 2);
-        const beverages = menuItems.filter(i =>
-          i.category === 'Beverages' && !cartIds.includes(i._id)
-        ).slice(0, 1);
-        upsell = [...breads, ...beverages];
+  const fetchRecommendations = async () => {
+    try {
+      const customerPhone = localStorage.getItem('customerPhone') || '';
+      const cartItems = cart.map(c => c.menuItem);
+      
+      const res = await recommendationAPI.get({ customerPhone, cartItems });
+      
+      if (res.data.success) {
+        setWeatherPicks(res.data.data.weatherPicks || []);
+        setUserFavorites(res.data.data.userFavorites || []);
+        setCombos(res.data.data.combos || []);
+        setWeatherCondition(res.data.data.weatherCondition || '');
+        setActiveOffers(res.data.data.activeOffers || '');
       }
-
-      // If starters only, suggest main course
-      if (cartCategories.includes('Starters') && !cartCategories.includes('Main Course')) {
-        const mains = menuItems.filter(i =>
-          i.category === 'Main Course' && i.isPopular && !cartIds.includes(i._id)
-        ).slice(0, 3);
-        upsell = [...upsell, ...mains];
-      }
-
-      // If meal, suggest desserts
-      if ((cartCategories.includes('Main Course') || cartCategories.includes('Rice & Biryani'))
-        && !cartCategories.includes('Desserts')) {
-        const desserts = menuItems.filter(i =>
-          i.category === 'Desserts' && !cartIds.includes(i._id)
-        ).slice(0, 2);
-        upsell = [...upsell, ...desserts];
-      }
-
-      setUpsellItems([...new Map(upsell.map(i => [i._id, i])).values()].slice(0, 4));
-    } else {
-      setUpsellItems([]);
+    } catch (err) {
+      console.error('Failed to fetch AI recommendations', err);
     }
   };
+  // Kept for backward compatibility if needed internally
 
   // Parse voice input into cart items
   const parseVoiceOrder = (transcript, menuItems) => {
@@ -130,5 +77,5 @@ export const useAIRecommendations = (menuItems, cart) => {
     return results;
   };
 
-  return { recommendations, upsellItems, timeBasedSuggestions, parseVoiceOrder };
+  return { weatherPicks, userFavorites, combos, weatherCondition, activeOffers, parseVoiceOrder };
 };
