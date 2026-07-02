@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import { useCart } from '../../context/CartContext';
-import { orderAPI } from '../../services/api';
+import { orderAPI, paymentAPI } from '../../services/api';
 
 const PHONE_REGEX = /^(\+91[-\s]?)?[6-9]\d{9}$/;
 
-export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced, t }) {
+export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced, t, combos = [], onAddCombo }) {
   const { cart, updateQuantity, removeFromCart, clearCart, subtotal, tax, total } = useCart();
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
@@ -24,7 +24,7 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
     return true;
   };
 
-  const placeOrder = async () => {
+  const placeOrder = async (method = 'cash') => {
     if (cart.length === 0) return;
     if (!validateForm()) return;
 
@@ -37,20 +37,40 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         specialRequests: specialRequests.trim(),
-        paymentMethod: 'cash', // offline checkout defaults to cash
+        paymentMethod: method === 'online' ? 'upi' : 'cash',
       };
+      
       const res = await orderAPI.create(orderData);
       const order = res.data.data;
       
-      // Save phone for AI recommendations
       localStorage.setItem('customerPhone', customerPhone.trim());
       
-      clearCart();
-      toast.success('Order placed! Kitchen is preparing your food.', { duration: 4000 });
-      onOrderPlaced(order);
+      if (method === 'online') {
+        await handleOnlinePayment(order);
+      } else {
+        clearCart();
+        toast.success('Order placed! Kitchen is preparing your food.', { duration: 4000 });
+        onOrderPlaced(order);
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to place order');
-    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOnlinePayment = async (order) => {
+    try {
+      const res = await paymentAPI.createOrder({ amount: order.total, orderId: order._id });
+      const redirectUrl = res.data?.data?.redirectUrl;
+
+      if (!redirectUrl) {
+        throw new Error('Payment gateway did not return a checkout URL');
+      }
+
+      clearCart();
+      window.location.assign(redirectUrl);
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Could not initialize payment gateway');
       setLoading(false);
     }
   };
@@ -133,7 +153,14 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
                         </span>
                         <p className="truncate text-sm font-bold text-gray-900 dark:text-white leading-snug">{item.name}</p>
                       </div>
-                      <p className="text-xs font-bold text-orange-500 dark:text-orange-300 mt-1">₹{item.price * item.quantity}</p>
+                      {item.addons && item.addons.length > 0 && (
+                        <p className="text-[10px] text-gray-500 mt-0.5 leading-tight truncate">
+                          + {item.addons.map(a => a.name).join(', ')}
+                        </p>
+                      )}
+                      <p className="text-xs font-bold text-orange-500 dark:text-orange-300 mt-1">
+                        ₹{(item.price + (item.addons ? item.addons.reduce((a,b)=>a+b.price,0) : 0)) * item.quantity}
+                      </p>
                     </div>
 
                     {/* Stepper with white background (Zomato Style) */}
@@ -164,6 +191,41 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
                   </div>
                 ))}
               </div>
+
+              {/* Upsell Recommendations */}
+              {combos.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-extrabold text-orange-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <span className="text-sm">✨</span> Complete Your Meal
+                    </h3>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                    {combos.map(item => (
+                      <div key={item._id} className="min-w-[140px] flex-shrink-0 bg-white dark:bg-coal border border-orange-200 dark:border-white/10 rounded-2xl p-2.5 shadow-sm">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="h-20 w-full object-cover rounded-xl mb-2 bg-gray-100 dark:bg-ash" 
+                        />
+                        <p className="text-[11px] font-bold text-gray-900 dark:text-white truncate">{item.name}</p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-[11px] font-black text-orange-500">₹{item.price}</p>
+                          <button 
+                            onClick={() => {
+                              onAddCombo(item);
+                              toast.success(`Added ${item.name}`);
+                            }}
+                            className="h-6 px-2.5 rounded-lg bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-300 text-[10px] font-bold active:scale-95 transition-all"
+                          >
+                            + ADD
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Personal Details Section */}
               <div className="space-y-3 pt-2">
@@ -231,21 +293,31 @@ export default function CartPanel({ tableNumber, tableId, onClose, onOrderPlaced
               </div>
             </div>
 
-            {/* Place Order CTA Button */}
-            <button
-              onClick={placeOrder}
-              disabled={loading}
-              className="min-h-[50px] w-full rounded-2xl bg-gradient-to-r from-flame to-ember text-sm font-black text-white shadow-glow-md hover:shadow-glow-lg hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Place Order</span>
-                  <span>➜</span>
-                </>
-              )}
-            </button>
+            {/* Place Order CTA Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => placeOrder('cash')}
+                disabled={loading}
+                className="flex-1 min-h-[50px] rounded-2xl bg-gray-100 text-gray-800 dark:bg-white/10 dark:text-gray-200 text-sm font-bold shadow-sm hover:bg-gray-200 dark:hover:bg-white/20 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {loading ? <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" /> : 'Pay Cash'}
+              </button>
+              
+              <button
+                onClick={() => placeOrder('online')}
+                disabled={loading}
+                className="flex-[2] min-h-[50px] rounded-2xl bg-gradient-to-r from-flame to-ember text-sm font-black text-white shadow-glow-md hover:shadow-glow-lg hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 uppercase tracking-wider"
+              >
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Pay Online</span>
+                    <span>➜</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </section>

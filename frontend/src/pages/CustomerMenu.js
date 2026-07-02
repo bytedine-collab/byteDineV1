@@ -30,6 +30,15 @@ const LANGUAGES = [
   { id: 'mr', label: 'मर', flag: '🇮🇳' },
 ];
 
+const dedupeOrders = (orders) => {
+  const seen = new Set();
+  return orders.filter(order => {
+    if (!order?._id || seen.has(order._id)) return false;
+    seen.add(order._id);
+    return true;
+  });
+};
+
 export default function CustomerMenu() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -104,7 +113,7 @@ export default function CustomerMenu() {
   const loadActiveOrders = async () => {
     try {
       const res = await orderAPI.getByTable(tableNumber);
-      setActiveOrders(res.data.data);
+      setActiveOrders(dedupeOrders(res.data.data));
     } catch (err) {
       console.error('Orders error:', err);
     }
@@ -115,15 +124,15 @@ export default function CustomerMenu() {
     socket.emit('joinTable', { tableNumber });
 
     socket.on('orderUpdated', (order) => {
-      setActiveOrders(prev =>
+      setActiveOrders(prev => dedupeOrders(
         prev.map(o => o._id === order._id ? order : o)
-      );
+      ));
       const statusMap = { preparing: '👨‍🍳 Preparing your order!', ready: '🔔 Your order is ready!', served: '✅ Enjoy your meal!' };
       if (statusMap[order.status]) toast(statusMap[order.status], { duration: 4000 });
     });
 
     socket.on('orderCreated', (order) => {
-      setActiveOrders(prev => [order, ...prev]);
+      setActiveOrders(prev => dedupeOrders([order, ...prev]));
     });
 
     socket.on('waiterOnWay', () => {
@@ -143,6 +152,7 @@ export default function CustomerMenu() {
       addToCart(item, quantity);
       toast.success(`Added ${quantity}x ${item.name}`);
     });
+    setShowCart(true); // Automatically open cart after voice order
   }, [menuItems, parseVoiceOrder, addToCart]);
 
   const handleCallWaiter = async () => {
@@ -395,12 +405,14 @@ export default function CustomerMenu() {
           tableId={tableInfo?._id}
           onClose={() => setShowCart(false)}
           onOrderPlaced={(order) => {
-            setActiveOrders(prev => [order, ...prev]);
+            setActiveOrders(prev => dedupeOrders([order, ...prev]));
             setShowCart(false);
             setShowTracker(true);
           }}
           t={t}
           lang={lang}
+          combos={combos}
+          onAddCombo={(item) => addToCart(item, 1)}
         />
       )}
 

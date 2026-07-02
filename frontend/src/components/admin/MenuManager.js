@@ -9,7 +9,7 @@ const EMPTY_FORM = {
   name: '', nameHindi: '', nameMarathi: '', description: '',
   category: 'Main Course', price: '', image: '', isVeg: true,
   isAvailable: true, isPopular: false, isFeatured: false,
-  spiceLevel: 'Medium', prepTime: 15, tags: '',
+  spiceLevel: 'Medium', prepTime: 15, tags: '', addons: [],
 };
 
 export default function MenuManager() {
@@ -57,6 +57,26 @@ export default function MenuManager() {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+  };
+
+  const handleAddAddon = () => {
+    setForm(prev => ({ ...prev, addons: [...(prev.addons || []), { name: '', price: '' }] }));
+  };
+
+  const handleAddonChange = (index, field, value) => {
+    setForm(prev => {
+      const newAddons = [...(prev.addons || [])];
+      newAddons[index][field] = field === 'price' ? Number(value) : value;
+      return { ...prev, addons: newAddons };
+    });
+  };
+
+  const handleRemoveAddon = (index) => {
+    setForm(prev => {
+      const newAddons = [...(prev.addons || [])];
+      newAddons.splice(index, 1);
+      return { ...prev, addons: newAddons };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -345,6 +365,26 @@ export default function MenuManager() {
                 <label className="text-xs text-gray-400 mb-1 block font-semibold uppercase tracking-wider">Tags (comma-separated)</label>
                 <input name="tags" value={form.tags} onChange={handleChange} placeholder="e.g. spicy, grilled, popular"
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-500" />
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="text-xs text-gray-400 font-semibold uppercase tracking-wider">Add-ons</label>
+                  <button type="button" onClick={handleAddAddon} className="text-xs bg-gray-800 hover:bg-gray-700 text-white px-2 py-1 rounded">
+                    + Add Add-on
+                  </button>
+                </div>
+                {(form.addons || []).map((addon, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <input value={addon.name} onChange={e => handleAddonChange(index, 'name', e.target.value)} placeholder="Add-on Name"
+                      className="flex-[2] bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500" />
+                    <input type="number" value={addon.price} onChange={e => handleAddonChange(index, 'price', e.target.value)} placeholder="Price"
+                      className="flex-1 bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500" />
+                    <button type="button" onClick={() => handleRemoveAddon(index)} className="bg-red-500/20 text-red-500 hover:bg-red-500/30 px-3 rounded-xl">
+                      ×
+                    </button>
+                  </div>
+                ))}
               </div>
 
               {/* Toggles */}

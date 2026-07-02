@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useCart } from '../../context/CartContext';
+import AddonModal from './AddonModal';
 
 const spiceStyles = {
   Mild: 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20',
@@ -11,6 +12,8 @@ const spiceStyles = {
 export default function MenuItemCard({ item, lang, t, onItemAdded }) {
   const { cart, addToCart, updateQuantity } = useCart();
 
+  const [showAddonModal, setShowAddonModal] = useState(false);
+
   // Bind directly to global cart state
   const cartItem = cart.find(i => i.menuItem === item._id);
   const qty = cartItem ? cartItem.quantity : 0;
@@ -19,8 +22,17 @@ export default function MenuItemCard({ item, lang, t, onItemAdded }) {
     lang === 'mr' && item.nameMarathi ? item.nameMarathi : item.name;
 
   const handleAdd = () => {
+    if (item.addons && item.addons.length > 0) {
+      setShowAddonModal(true);
+      return;
+    }
     addToCart(item, 1);
     if (onItemAdded) onItemAdded(item);
+  };
+
+  const handleAddonConfirm = (itemToAdd, quantity, specialInstructions, addons) => {
+    addToCart(itemToAdd, quantity, specialInstructions, addons);
+    if (onItemAdded) onItemAdded(itemToAdd);
   };
 
   const handleIncrement = () => {
@@ -129,6 +141,14 @@ export default function MenuItemCard({ item, lang, t, onItemAdded }) {
           )}
         </div>
       </div>
+      
+      {showAddonModal && (
+        <AddonModal 
+          item={item} 
+          onClose={() => setShowAddonModal(false)} 
+          onAdd={handleAddonConfirm} 
+        />
+      )}
     </article>
   );
 }

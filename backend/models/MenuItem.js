@@ -64,6 +64,10 @@ const menuItemSchema = new mongoose.Schema({
     min: 0,
     max: 5,
   },
+  addons: [{
+    name: String,
+    price: Number
+  }],
 }, { timestamps: true });
 
 // Text search index

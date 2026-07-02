@@ -8,14 +8,43 @@ const normalizePhone = (phone) => {
   return digits;
 };
 
-const buildBillMessage = (order) => (
-  `Thank you for your order!\n` +
-  `Order ID: #${order.orderNumber}\n` +
-  `Items: ${formatItems(order.items)}\n` +
-  `Total: ₹${order.total}\n` +
-  `Payment: Paid\n` +
-  `Visit Again!`
-);
+const getPaymentText = (order) => {
+  if (order.paymentStatus === 'paid') return `Paid via ${order.paymentMethod || 'payment gateway'}`;
+  if (order.paymentStatus === 'pending_cash') return 'Cash due at counter/waiter';
+  return 'Pending';
+};
+
+const getBillUrl = (order) => {
+  const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`;
+  return `${backendUrl}/api/bills/${order._id}`;
+};
+
+const buildBillMessage = (order) => {
+  const restaurantName = process.env.RESTAURANT_NAME || 'ByteDine Restaurant';
+  const billUrl = getBillUrl(order);
+
+  const itemLines = (order.items || [])
+    .map(item => `  • ${item.name} x${item.quantity}`)
+    .join('\n');
+
+  return (
+    `🧾 ${restaurantName}\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `Order: #${order.orderNumber}\n` +
+    `Table: ${order.tableNumber}\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `${itemLines}\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `Subtotal: Rs ${order.subtotal || 0}\n` +
+    `GST (5%): Rs ${order.tax || 0}\n` +
+    (order.discount > 0 ? `Discount: -Rs ${order.discount}\n` : '') +
+    `Total: Rs ${order.total}\n` +
+    `Payment: ${getPaymentText(order)}\n` +
+    `━━━━━━━━━━━━━━━\n` +
+    `📄 View Full Bill:\n${billUrl}\n\n` +
+    `Thank you for dining with us! 🍽️`
+  );
+};
 
 const sendViaFast2SMS = async (phone, message) => {
   const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {

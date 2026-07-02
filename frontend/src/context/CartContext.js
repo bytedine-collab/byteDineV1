@@ -17,12 +17,14 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (item, quantity = 1, specialInstructions = '') => {
+  const addToCart = (item, quantity = 1, specialInstructions = '', addons = []) => {
     setCart(prev => {
-      const existing = prev.find(i => i.menuItem === item._id);
+      // To allow same item with different addons, we might need a unique key, 
+      // but for simplicity we'll just match by menuItem id for now.
+      const existing = prev.find(i => i.menuItem === item._id && JSON.stringify(i.addons || []) === JSON.stringify(addons));
       if (existing) {
         return prev.map(i =>
-          i.menuItem === item._id
+          (i.menuItem === item._id && JSON.stringify(i.addons || []) === JSON.stringify(addons))
             ? { ...i, quantity: i.quantity + quantity }
             : i
         );
@@ -36,6 +38,7 @@ export const CartProvider = ({ children }) => {
         specialInstructions,
         isVeg: item.isVeg,
         category: item.category,
+        addons,
       }];
     });
   };
@@ -59,7 +62,10 @@ export const CartProvider = ({ children }) => {
     localStorage.removeItem('cart');
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => {
+    const addonTotal = item.addons ? item.addons.reduce((a, b) => a + (b.price || 0), 0) : 0;
+    return sum + (item.price + addonTotal) * item.quantity;
+  }, 0);
   const tax = Math.round(subtotal * 0.05);
   const total = subtotal + tax;
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);

@@ -18,6 +18,17 @@ const createOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid mobile number is required' });
     }
 
+    const normalizedTableNumber = Number(tableNumber);
+    let table = tableId ? await Table.findById(tableId) : null;
+
+    if (!table && Number.isFinite(normalizedTableNumber)) {
+      table = await Table.findOne({ tableNumber: normalizedTableNumber, isActive: true });
+    }
+
+    if (!table) {
+      return res.status(400).json({ success: false, message: 'Invalid table. Please scan a valid table QR code.' });
+    }
+
     // Validate and enrich items with current prices
     const enrichedItems = await Promise.all(items.map(async (item) => {
       const menuItem = await MenuItem.findById(item.menuItem);
@@ -36,18 +47,18 @@ const createOrder = async (req, res) => {
     }));
 
     const order = await Order.create({
-      table: tableId,
-      tableNumber,
+      table: table._id,
+      tableNumber: table.tableNumber,
       items: enrichedItems,
       customerName,
       customerPhone: String(customerPhone).trim(),
       specialRequests,
-      paymentMethod: paymentMethod === 'cash' ? 'cash' : undefined,
+      paymentMethod: ['cash', 'upi', 'card'].includes(paymentMethod) ? paymentMethod : undefined,
       paymentStatus: paymentMethod === 'cash' ? 'pending_cash' : 'unpaid',
     });
 
     // Update table status
-    await Table.findByIdAndUpdate(tableId, { status: 'occupied', currentSession: order._id });
+    await Table.findByIdAndUpdate(table._id, { status: 'occupied', currentSession: order._id });
 
     // Populate for response
     const populatedOrder = await Order.findById(order._id)
@@ -59,7 +70,7 @@ const createOrder = async (req, res) => {
     if (io) {
       io.to('admin-room').emit('newOrder', populatedOrder);
       io.to('kitchen-room').emit('newOrder', populatedOrder);
-      io.to(`table-${tableNumber}`).emit('orderCreated', populatedOrder);
+      io.to(`table-${table.tableNumber}`).emit('orderCreated', populatedOrder);
     }
 
     res.status(201).json({ success: true, data: populatedOrder });

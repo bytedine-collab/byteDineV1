@@ -11,6 +11,7 @@ import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import KitchenPanel from './pages/KitchenPanel';
 import OrderConfirmation from './pages/OrderConfirmation';
+import PaymentStatus from './pages/PaymentStatus';
 
 // Protected Route
 const ProtectedRoute = ({ children, roles }) => {
@@ -45,6 +46,7 @@ function App() {
             <Routes>
               {/* Customer routes */}
               <Route path="/menu" element={<CustomerMenu />} />
+              <Route path="/payment-status" element={<PaymentStatus />} />
               <Route path="/order-confirmation/:orderId" element={<OrderConfirmation />} />
 
               {/* Admin routes */}

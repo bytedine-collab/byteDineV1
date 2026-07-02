@@ -19,6 +19,10 @@ const orderItemSchema = new mongoose.Schema({
     enum: ['pending', 'preparing', 'ready', 'served'],
     default: 'pending',
   },
+  addons: [{
+    name: String,
+    price: Number
+  }],
 });
 
 const orderSchema = new mongoose.Schema({
@@ -70,7 +74,10 @@ orderSchema.pre('save', async function(next) {
 
   // Calculate totals
   if (this.items && this.items.length > 0) {
-    this.subtotal = this.items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    this.subtotal = this.items.reduce((sum, item) => {
+      const addonTotal = item.addons ? item.addons.reduce((a, b) => a + (b.price || 0), 0) : 0;
+      return sum + ((item.price + addonTotal) * item.quantity);
+    }, 0);
     this.tax = Math.round(this.subtotal * 0.05); // 5% GST
     this.total = this.subtotal + this.tax - this.discount;
   }

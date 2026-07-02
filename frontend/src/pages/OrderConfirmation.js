@@ -4,6 +4,8 @@ import { orderAPI } from '../services/api';
 import { getSocket } from '../services/socket';
 import toast from 'react-hot-toast';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
 const STATUS_STEPS = ['pending', 'confirmed', 'preparing', 'ready', 'served'];
 const STATUS_LABELS = {
   pending: 'Order Placed',
@@ -207,9 +209,26 @@ export default function OrderConfirmation() {
         )}
 
         {order.paymentStatus === 'paid' && (
-          <section className="bg-green-500/10 border border-green-500/30 rounded-3xl p-5 text-center shadow-glow-sm">
-            <p className="text-green-300 font-bold">Payment Complete</p>
-            <p className="text-gray-400 text-sm mt-1">Rs {order.total?.toLocaleString()} paid via {order.paymentMethod}</p>
+          <section className="bg-green-500/10 border border-green-500/30 rounded-3xl p-5 text-center shadow-glow-sm space-y-3">
+            <p className="text-green-300 font-bold">✅ Payment Complete</p>
+            <p className="text-gray-400 text-sm">Rs {order.total?.toLocaleString()} paid via {order.paymentMethod}</p>
+
+            {order.customerPhone && (
+              <div className="rounded-2xl border border-green-500/20 bg-green-500/5 px-4 py-2.5 mt-2">
+                <p className="text-xs text-green-300 font-semibold flex items-center justify-center gap-1.5">
+                  <span>📩</span> Bill sent to {order.customerPhone.replace(/(\d{2})\d{6}(\d{2})/, '$1••••••$2')} via SMS
+                </p>
+              </div>
+            )}
+
+            <a
+              href={`${API_URL.replace('/api', '')}/api/bills/${order._id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-flex min-h-[44px] w-full items-center justify-center rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 px-4 text-sm font-bold text-white shadow-md active:scale-95 gap-2"
+            >
+              <span>📄</span> View & Download Bill
+            </a>
           </section>
         )}
 
